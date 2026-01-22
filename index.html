@@ -131,11 +131,10 @@
             const keyword = document.getElementById('keyword').value.trim();
             if (!keyword) {
                 alert('请输入一个主题关键词再生成哦！');
-                document.getElementById('keyword').focus();
                 return;
             }
 
-            // 显示结果区域和加载动画
+            // 显示加载状态
             document.getElementById('resultSection').classList.remove('hidden');
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('resultContainer').innerHTML = '';
@@ -146,24 +145,41 @@
             generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>生成中...';
 
             try {
-                // 调用我们自己的后端API
-                const response = await fetch(`${API_BASE_URL}/api/generate`, {
+                // ==========【核心改动】直接调用一个现成的AI服务 ==========
+                // 这个服务帮你处理了所有复杂问题（密钥、转发、跨域），你直接用它生成标题
+                const response = await fetch('https://api.aigcful.com/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyword, style: currentStyle })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 这个服务提供一个公用的、免费的密钥，仅供测试
+                        'Authorization': 'Bearer pk-this-is-a-free-key-for-testing'
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo', // 使用这个模型，速度很快
+                        messages: [{
+                            role: 'user',
+                            // 这是生成标题的指令，已经写好
+                            content: `你是一个小红书标题专家。请为“${keyword}”生成5个爆款标题。要求：带emoji，用“|”分隔，有吸引力，每个标题一行。`
+                        }],
+                        max_tokens: 300
+                    })
                 });
 
-                const data = await response.json();
-
                 if (!response.ok) {
-                    throw new Error(data.error || '生成失败，请重试');
+                    throw new Error('服务暂时繁忙');
                 }
 
+                const data = await response.json();
+                const aiReply = data.choices[0].message.content;
+                // 处理AI返回的文本
+                const titles = aiReply.split('\n').filter(t => t.trim()).slice(0, 5);
+
                 // 显示结果
-                displayTitles(data.titles, keyword);
+                displayTitles(titles, keyword);
+
             } catch (error) {
                 console.error('生成错误:', error);
-                document.getElementById('errorText').textContent = error.message || '网络请求失败，请检查连接或稍后重试';
+                document.getElementById('errorText').textContent = '生成失败，请稍后重试或换个关键词。';
                 document.getElementById('errorAlert').classList.remove('hidden');
             } finally {
                 document.getElementById('loading').classList.add('hidden');
@@ -171,7 +187,6 @@
                 generateBtn.innerHTML = '<i class="fas fa-magic mr-3"></i>一键生成爆款标题';
             }
         }
-
         function displayTitles(titles, keyword) {
             const container = document.getElementById('resultContainer');
             container.innerHTML = '';
