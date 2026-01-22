@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书爆款标题生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .title-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(255, 36, 66, 0.2); }
+        .pulse { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-pink-50 to-white min-h-screen">
+    <div class="container mx-auto px-4 py-12 max-w-3xl">
+        <!-- 标题区 -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-fire text-red-400 mr-3"></i>小红书爆款标题生成器
+            </h1>
+            <p class="text-gray-600 text-lg">输入关键词，AI一键生成吸引眼球的爆款标题，提升笔记点击率！</p>
+        </header>
+
+        <!-- 输入区 -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-8">
+            <div class="mb-6">
+                <label class="block text-gray-700 font-medium mb-3 text-lg" for="keyword">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>请输入你的主题
+                </label>
+                <input type="text" id="keyword" placeholder="例如：春日野餐、通勤穿搭、平价彩妆、租房改造..."
+                    class="w-full px-5 py-4 text-lg border-2 border-pink-200 rounded-xl focus:border-pink-400 focus:ring-2 focus:ring-pink-200 outline-none transition">
+                <p class="text-gray-500 text-sm mt-2">越具体的关键词，AI生成的标题越精准哦！</p>
+            </div>
+
+            <!-- 风格选择（可选） -->
+            <div class="mb-8">
+                <p class="block text-gray-700 font-medium mb-3">
+                    <i class="fas fa-palette text-purple-500 mr-2"></i>选择标题风格（可选）
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="setStyle('hot')" class="style-btn bg-red-100 text-red-700 border-red-300" data-style="hot">
+                        <i class="fas fa-fire mr-2"></i>爆款热榜风
+                    </button>
+                    <button onclick="setStyle('emoji')" class="style-btn bg-yellow-100 text-yellow-700 border-yellow-300" data-style="emoji">
+                        <i class="far fa-laugh-beam mr-2"></i>多表情吸睛
+                    </button>
+                    <button onclick="setStyle('simple')" class="style-btn bg-blue-100 text-blue-700 border-blue-300" data-style="simple">
+                        <i class="fas fa-star mr-2"></i>简洁干货型
+                    </button>
+                </div>
+            </div>
+
+            <!-- 生成按钮 -->
+            <div class="text-center">
+                <button id="generateBtn" onclick="generateTitles()"
+                    class="bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white font-bold text-xl py-4 px-12 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <i class="fas fa-magic mr-3"></i>一键生成爆款标题
+                </button>
+            </div>
+        </div>
+
+        <!-- 结果显示区 -->
+        <div id="resultSection" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800">
+                    <i class="fas fa-clipboard-list text-green-500 mr-3"></i>为您生成的标题
+                </h2>
+                <button onclick="copyAllTitles()"
+                    class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-5 rounded-lg transition">
+                    <i class="fas fa-copy mr-2"></i>一键复制全部
+                </button>
+            </div>
+
+            <div id="loading" class="hidden text-center py-12">
+                <div class="inline-block">
+                    <i class="fas fa-spinner fa-spin text-4xl text-pink-500 mb-4 pulse"></i>
+                    <p class="text-gray-700 font-medium">AI正在疯狂构思中，请稍候...</p>
+                    <p class="text-gray-500 text-sm mt-2">这通常需要3-10秒</p>
+                </div>
+            </div>
+
+            <div id="resultContainer" class="grid grid-cols-1 gap-5"></div>
+
+            <!-- 错误信息 -->
+            <div id="errorAlert" class="hidden mt-8 bg-red-50 border-l-4 border-red-500 p-5 rounded">
+                <div class="flex">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-4 mt-1"></i>
+                    <div>
+                        <h3 class="font-bold text-red-800">生成失败</h3>
+                        <p id="errorText" class="text-red-700">抱歉，AI似乎开小差了。请检查网络连接，或稍后重试。</p>
+                        <button onclick="retryGenerate()" class="mt-3 bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-4 rounded-lg transition">
+                            <i class="fas fa-redo mr-2"></i>重新尝试
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用提示 -->
+        <div class="mt-12 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+            <h3 class="font-bold text-blue-800 text-xl mb-4">
+                <i class="fas fa-tips mr-2"></i>使用小贴士
+            </h3>
+            <ul class="text-blue-700 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <li><i class="fas fa-check-circle text-blue-500 mr-2"></i>可尝试<strong>组合关键词</strong>，如“微胖女孩 夏季连衣裙”</li>
+                <li><i class="fas fa-check-circle text-blue-500 mr-2"></i>点击标题可直接<strong>复制单条</strong>到剪贴板</li>
+                <li><i class="fas fa-check-circle text-blue-500 mr-2"></i>风格按钮可<strong>混合使用</strong>，生成后仍可切换</li>
+                <li><i class="fas fa-check-circle text-blue-500 mr-2"></i>每日可免费生成<strong>数十次</strong>，尽情尝试</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 配置 - 这里需要你填写！！！！
+        const API_BASE_URL = 'https://your-project-name.vercel.app'; // 第3步部署后会获得，先保持这样
+        let currentStyle = 'hot';
+
+        function setStyle(style) {
+            currentStyle = style;
+            // 更新按钮视觉状态
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-pink-400');
+                if (btn.getAttribute('data-style') === style) {
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-pink-400');
+                }
+            });
+        }
+
+        async function generateTitles() {
+            const keyword = document.getElementById('keyword').value.trim();
+            if (!keyword) {
+                alert('请输入一个主题关键词再生成哦！');
+                document.getElementById('keyword').focus();
+                return;
+            }
+
+            // 显示结果区域和加载动画
+            document.getElementById('resultSection').classList.remove('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('resultContainer').innerHTML = '';
+            document.getElementById('errorAlert').classList.add('hidden');
+
+            const generateBtn = document.getElementById('generateBtn');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>生成中...';
+
+            try {
+                // 调用我们自己的后端API
+                const response = await fetch(`${API_BASE_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword, style: currentStyle })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || '生成失败，请重试');
+                }
+
+                // 显示结果
+                displayTitles(data.titles, keyword);
+            } catch (error) {
+                console.error('生成错误:', error);
+                document.getElementById('errorText').textContent = error.message || '网络请求失败，请检查连接或稍后重试';
+                document.getElementById('errorAlert').classList.remove('hidden');
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-magic mr-3"></i>一键生成爆款标题';
+            }
+        }
+
+        function displayTitles(titles, keyword) {
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = '';
+
+            if (!titles || titles.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">未生成标题，请重试</div>';
+                return;
+            }
+
+            titles.forEach((title, index) => {
+                const card = document.createElement('div');
+                card.className = 'title-card bg-white border border-pink-100 rounded-xl p-6 transition-all duration-300 cursor-pointer';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="bg-pink-100 text-pink-800 font-bold py-1 px-3 rounded-full">标题 ${index + 1}</span>
+                        <button onclick="copyTitle('${title.replace(/'/g, "\\'")}')" class="text-gray-400 hover:text-pink-500 transition">
+                            <i class="far fa-copy text-xl"></i>
+                        </button>
+                    </div>
+                    <p class="text-gray-800 text-xl leading-relaxed">${title}</p>
+                `;
+                // 点击卡片也可以复制
+                card.addEventListener('click', () => copyTitle(title));
+                container.appendChild(card);
+            });
+        }
+
+        function copyTitle(title) {
+            navigator.clipboard.writeText(title).then(() => {
+                alert('标题已复制到剪贴板！\n\n' + title);
+            });
+        }
+
+        function copyAllTitles() {
+            const titles = Array.from(document.querySelectorAll('#resultContainer .title-card p'))
+                .map(p => p.textContent)
+                .join('\n\n');
+            if (titles) {
+                navigator.clipboard.writeText(titles).then(() => {
+                    alert('全部标题已复制到剪贴板！');
+                });
+            }
+        }
+
+        function retryGenerate() {
+            document.getElementById('errorAlert').classList.add('hidden');
+            generateTitles();
+        }
+
+        // 初始化：选中第一个风格按钮
+        document.addEventListener('DOMContentLoaded', () => setStyle('hot'));
+    </script>
+</body>
+</html>
